@@ -1,13 +1,15 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+function getResend() {
+  return new Resend(process.env.RESEND_API_KEY || "re_placeholder");
+}
 const FROM = process.env.EMAIL_FROM || "noreply@dropconnect.com.br";
 
 export async function sendWelcomeEmail(email: string, nome: string, role: string) {
   const roleLabel = role === "VENDEDOR" ? "vendedor" : "fornecedor";
   const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/${roleLabel}`;
 
-  return resend.emails.send({
+  return getResend().emails.send({
     from: FROM,
     to: email,
     subject: "Bem-vindo ao DropConnect!",
@@ -32,7 +34,7 @@ export async function sendPaymentSuccessEmail(
   planoNome: string,
   valor: string
 ) {
-  return resend.emails.send({
+  return getResend().emails.send({
     from: FROM,
     to: email,
     subject: "Assinatura ativada — DropConnect",
@@ -52,7 +54,7 @@ export async function sendPaymentSuccessEmail(
 }
 
 export async function sendPaymentFailedEmail(email: string, nome: string) {
-  return resend.emails.send({
+  return getResend().emails.send({
     from: FROM,
     to: email,
     subject: "Problema no pagamento — DropConnect",
@@ -79,7 +81,7 @@ export async function sendLowStockAlert(
     .map((p) => `<li><strong>${p.nome}</strong>: ${p.estoque} unidades</li>`)
     .join("");
 
-  return resend.emails.send({
+  return getResend().emails.send({
     from: FROM,
     to: email,
     subject: "Alerta de estoque baixo — DropConnect",
