@@ -36,6 +36,15 @@ enum StatusAssinatura {
 enum TipoPlano {
   MENSAL
   ANUAL
+  VITALICIO
+}
+
+enum StatusAnuncio {
+  ATIVO
+  PAUSADO
+  RASCUNHO
+  ENCERRADO
+  COM_ERRO
 }
 
 enum Canal {
@@ -116,13 +125,15 @@ model ProdutoImportado {
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   produtoId  String
   produto    Produto   @relation(fields: [produtoId], references: [id], onDelete: Cascade)
-  canal      Canal
-  externalId String?
-  precoVenda Decimal   @db.Decimal(10, 2)
-  ativo      Boolean   @default(true)
-  ultimoSync DateTime?
-  syncLogs   SyncLog[]
-  createdAt  DateTime  @default(now())
+  canal         Canal
+  externalId    String?
+  precoVenda    Decimal        @db.Decimal(10, 2)
+  ativo         Boolean        @default(true)
+  statusAnuncio StatusAnuncio  @default(ATIVO)
+  vendidos      Int            @default(0)
+  ultimoSync    DateTime?
+  syncLogs      SyncLog[]
+  createdAt     DateTime       @default(now())
 }
 
 model Canal_Config {
