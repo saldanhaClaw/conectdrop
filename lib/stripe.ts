@@ -1,7 +1,11 @@
 import Stripe from "stripe";
 
-function getStripe() {
-  return new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_placeholder", {
+function getStripe(): Stripe {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key || key === "sk_test_placeholder") {
+    throw new Error("STRIPE_SECRET_KEY is not configured");
+  }
+  return new Stripe(key, {
     apiVersion: "2026-04-22.dahlia" as never,
     typescript: true,
   });
@@ -9,7 +13,13 @@ function getStripe() {
 
 let _stripe: Stripe | null = null;
 export function stripe(): Stripe {
-  if (!_stripe) _stripe = getStripe();
+  if (!_stripe) {
+    try {
+      _stripe = getStripe();
+    } catch {
+      throw new Error("Stripe is not configured. Set STRIPE_SECRET_KEY.");
+    }
+  }
   return _stripe;
 }
 
