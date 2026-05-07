@@ -1,9 +1,17 @@
 import Stripe from "stripe";
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2026-04-22.dahlia" as never,
-  typescript: true,
-});
+function getStripe() {
+  return new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_placeholder", {
+    apiVersion: "2026-04-22.dahlia" as never,
+    typescript: true,
+  });
+}
+
+let _stripe: Stripe | null = null;
+export function stripe(): Stripe {
+  if (!_stripe) _stripe = getStripe();
+  return _stripe;
+}
 
 export const PLANOS = {
   MENSAL: {
@@ -68,7 +76,7 @@ export async function createCheckoutSession({
     lineItems.push({ price: process.env.STRIPE_PRICE_SUPORTE!, quantity: 1 });
   }
 
-  const session = await stripe.checkout.sessions.create({
+  const session = await stripe().checkout.sessions.create({
     mode: "subscription",
     payment_method_types: ["card"],
     customer_email: email,
@@ -88,7 +96,7 @@ export async function createCheckoutSession({
 }
 
 export async function createPortalSession(stripeCustomerId: string) {
-  const session = await stripe.billingPortal.sessions.create({
+  const session = await stripe().billingPortal.sessions.create({
     customer: stripeCustomerId,
     return_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/vendedor`,
   });
