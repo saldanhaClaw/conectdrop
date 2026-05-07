@@ -1,0 +1,185 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  VENDEDOR
+  FORNECEDOR
+  ADMIN
+}
+
+enum StatusFornecedor {
+  PENDENTE
+  APROVADO
+  REPROVADO
+  SUSPENSO
+}
+
+enum StatusProduto {
+  ATIVO
+  INATIVO
+  ESGOTADO
+}
+
+enum StatusAssinatura {
+  ATIVA
+  CANCELADA
+  INADIMPLENTE
+}
+
+enum TipoPlano {
+  MENSAL
+  ANUAL
+}
+
+enum Canal {
+  MERCADO_LIVRE
+  SHOPEE
+  MAGALU
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String?
+  role      Role     @default(VENDEDOR)
+  stripeId  String?  @unique
+  image     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assinatura Assinatura?
+  fornecedor Fornecedor?
+  canais     Canal_Config[]
+  importados ProdutoImportado[]
+  afiliadoDe Afiliado?  @relation("AfiliadoUser")
+  indicados  Afiliado[] @relation("IndicadoPor")
+}
+
+model Fornecedor {
+  id             String           @id @default(cuid())
+  userId         String           @unique
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  razaoSocial    String
+  cnpj           String?          @unique
+  status         StatusFornecedor @default(PENDENTE)
+  nichos         String[]
+  tempoDeMercado Int              @default(0)
+  avaliacaoMedia Float?
+  qualificacao   QualificacaoFornecedor?
+  produtos       Produto[]
+  createdAt      DateTime         @default(now())
+}
+
+model QualificacaoFornecedor {
+  id             String     @id @default(cuid())
+  fornecedorId   String     @unique
+  fornecedor     Fornecedor @relation(fields: [fornecedorId], references: [id], onDelete: Cascade)
+  minProdutos    Boolean    @default(false)
+  tempoEntregaOk Boolean    @default(false)
+  avaliacaoOk    Boolean    @default(false)
+  imagensOk      Boolean    @default(false)
+  descricaoOk    Boolean    @default(false)
+  feedEstoqueOk  Boolean    @default(false)
+  aprovadoEm     DateTime?
+  observacoes    String?
+}
+
+model Produto {
+  id            String        @id @default(cuid())
+  fornecedorId  String
+  fornecedor    Fornecedor    @relation(fields: [fornecedorId], references: [id], onDelete: Cascade)
+  nome          String
+  descricao     String        @db.Text
+  preco         Decimal       @db.Decimal(10, 2)
+  precoSugerido Decimal?      @db.Decimal(10, 2)
+  estoque       Int           @default(0)
+  sku           String        @unique
+  nicho         String
+  imagens       String[]
+  status        StatusProduto @default(ATIVO)
+  importados    ProdutoImportado[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model ProdutoImportado {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  produtoId  String
+  produto    Produto   @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  canal      Canal
+  externalId String?
+  precoVenda Decimal   @db.Decimal(10, 2)
+  ativo      Boolean   @default(true)
+  ultimoSync DateTime?
+  syncLogs   SyncLog[]
+  createdAt  DateTime  @default(now())
+}
+
+model Canal_Config {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  canal        Canal
+  accessToken  String
+  refreshToken String?
+  expiresAt    DateTime?
+  ativo        Boolean   @default(true)
+
+  @@unique([userId, canal])
+}
+
+model Plano {
+  id            String       @id @default(cuid())
+  nome          String
+  tipo          TipoPlano
+  preco         Decimal      @db.Decimal(10, 2)
+  stripePriceId String       @unique
+  assinaturas   Assinatura[]
+}
+
+model Assinatura {
+  id                   String           @id @default(cuid())
+  userId               String           @unique
+  user                 User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planoId              String
+  plano                Plano            @relation(fields: [planoId], references: [id])
+  stripeSubscriptionId String           @unique
+  status               StatusAssinatura @default(ATIVA)
+  suportePremium       Boolean          @default(false)
+  inicioEm             DateTime         @default(now())
+  renovaEm             DateTime?
+  canceladaEm          DateTime?
+}
+
+model Afiliado {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation("AfiliadoUser", fields: [userId], references: [id], onDelete: Cascade)
+  indicadoPorId String?
+  indicadoPor   User?    @relation("IndicadoPor", fields: [indicadoPorId], references: [id])
+  linkCode      String   @unique @default(cuid())
+  comissaoTotal Decimal  @default(0) @db.Decimal(10, 2)
+  createdAt     DateTime @default(now())
+}
+
+model SyncLog {
+  id                 String           @id @default(cuid())
+  produtoImportadoId String
+  produtoImportado   ProdutoImportado @relation(fields: [produtoImportadoId], references: [id], onDelete: Cascade)
+  tipo               String
+  valorAnterior      String?
+  valorNovo          String?
+  sucesso            Boolean
+  erro               String?
+  createdAt          DateTime         @default(now())
+}
