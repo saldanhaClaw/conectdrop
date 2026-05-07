@@ -2,7 +2,7 @@ import Stripe from "stripe";
 
 function getStripe(): Stripe {
   const key = process.env.STRIPE_SECRET_KEY;
-  if (!key || key === "sk_test_placeholder") {
+  if (!key || (!key.startsWith("sk_") && !key.startsWith("rk_"))) {
     throw new Error("STRIPE_SECRET_KEY is not configured");
   }
   return new Stripe(key, {
